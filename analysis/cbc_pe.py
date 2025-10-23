@@ -32,7 +32,7 @@ def compute_morphz_evidence(
     likelihood: bilby.gw.GravitationalWaveTransient,
     analysis_priors: bilby.gw.prior.BBHPriorDict,
     fixed_parameters: dict,
-    n_resamples: int =5,
+    n_resamples: int = 100,
     morph_type: str = "pair",
     kde_bw: str | float = "silverman",
     n_estimations: int = 1,
@@ -56,30 +56,21 @@ def compute_morphz_evidence(
     log_posterior_vals_2 = posterior["log_likelihood"].to_numpy() + posterior["log_prior"].to_numpy()
 
     base_parameters = fixed_parameters.copy()
-
-
-    # morph_prior = analysis_priors.copy()
-    # for key in fixed_parameters.keys():
-    #     if key in morph_prior:
-    #         del morph_prior[key]
-    morph_prior = bilby.gw.prior.PriorDict(dict( mass_ratio = bilby.gw.prior.UniformInComponentsMassRatio(minimum=0.125, maximum=1, name='mass_ratio', latex_label='$q$', unit=None, boundary=None, equal_mass=False),
-    chirp_mass =bilby.gw.prior.UniformInComponentsChirpMass(minimum=25, maximum=100, name='chirp_mass', latex_label='$\\mathcal{M}$', unit=None, boundary=None),
-    mass_1= bilby.gw.prior.Constraint(minimum=5, maximum=100, name='mass_1', latex_label='$m_1$', unit=None),
-    mass_2= bilby.gw.prior.Constraint(minimum=5, maximum=100, name='mass_2', latex_label='$m_2$', unit=None)))
+    morph_prior = bilby.gw.prior.PriorDict(dict( 
+            mass_ratio = bilby.gw.prior.UniformInComponentsMassRatio(minimum=0.125, maximum=1, name='mass_ratio', latex_label='$q$', unit=None, boundary=None, equal_mass=False),
+            chirp_mass =bilby.gw.prior.UniformInComponentsChirpMass(minimum=25, maximum=100, name='chirp_mass', latex_label='$\\mathcal{M}$', unit=None, boundary=None),
+            mass_1= bilby.gw.prior.Constraint(minimum=5, maximum=100, name='mass_1', latex_label='$m_1$', unit=None),
+            mass_2= bilby.gw.prior.Constraint(minimum=5, maximum=100, name='mass_2', latex_label='$m_2$', unit=None))
+    )
    
-    print(f" analysis priors: {analysis_priors}")
-    print(f" morph prior: {morph_prior}")
-
     def log_posterior(theta: np.ndarray) -> float:
         params = dict(zip(morphz_param_names, theta))
         full_params = base_parameters.copy()
         full_params.update(params)
-        #print(f" Full params: {full_params}")
         log_prior = morph_prior.ln_prob(params)
         if not np.isfinite(log_prior):
             return log_prior
         log_likelihood = likelihood.log_likelihood(full_params)
-        # print(f"  log_prior: {log_prior}, log_likelihood: {log_likelihood}")
         return log_likelihood + log_prior
     
     size, ndim = morphz_samples.shape

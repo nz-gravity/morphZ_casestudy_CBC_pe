@@ -2,7 +2,7 @@
 #SBATCH --job-name=cbc_pe_array
 #SBATCH --output=logs/cbc_pe_%A_%a.out
 #SBATCH --error=logs/cbc_pe_%A_%a.err
-#SBATCH --time=02:00:00
+#SBATCH --time=00:30:00
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=8G
 #SBATCH --array=1-10
