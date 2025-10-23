@@ -190,9 +190,9 @@ def main(seed=88170235):
         label=label,
     )
 
-    # Make a corner plot + save to outdir
-    result.plot_corner()
+
     print(f"Nested sampling LnZ: {result.log_evidence} +\- {result.log_evidence_err}")
+    print("Computing morphZ evidence estimate...")
     morphz_summary = compute_morphz_evidence(
         result=result,
         likelihood=likelihood,
