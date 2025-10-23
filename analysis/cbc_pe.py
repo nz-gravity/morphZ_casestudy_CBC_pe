@@ -32,26 +32,25 @@ def compute_morphz_evidence(
     likelihood: bilby.gw.GravitationalWaveTransient,
     analysis_priors: bilby.gw.prior.BBHPriorDict,
     fixed_parameters: dict,
-    outdir: str,
     n_resamples: int = 2000,
     morph_type: str = "tree",
     kde_bw: str | float = "isj",
     n_estimations: int = 2,
     verbose: bool = True,
-) -> dict | None:
-    """Run morphZ evidence estimation and persist outputs to disk."""
+) -> dict:
+    """Run morphZ evidence estimation and return summary stats."""
     posterior = result.posterior
+    if posterior is None or posterior.empty:
+        raise RuntimeError("Result contains no posterior samples for morphZ.")
     morphz_param_names = list(result.search_parameter_keys)
     required_columns = {"log_likelihood", "log_prior"}
     if not required_columns.issubset(posterior.columns):
         missing = sorted(required_columns.difference(posterior.columns))
-        print(f"Posterior is missing columns needed for morphZ: {missing}")
-        return None
+        raise RuntimeError(f"Posterior missing columns needed for morphZ: {missing}")
 
     missing_params = [name for name in morphz_param_names if name not in posterior.columns]
     if missing_params:
-        print(f"Posterior is missing search parameters needed for morphZ: {missing_params}")
-        return None
+        raise RuntimeError(f"Posterior missing search parameters needed for morphZ: {missing_params}")
 
     morphz_samples = posterior[morphz_param_names].to_numpy()
     log_posterior_vals = posterior["log_likelihood"].to_numpy() + posterior["log_prior"].to_numpy()
@@ -68,7 +67,7 @@ def compute_morphz_evidence(
         log_likelihood = likelihood.log_likelihood(full_params)
         return log_likelihood + log_prior
 
-    morphz_output_dir = os.path.join(outdir, "morphZ")
+    morphz_output_dir = os.path.join(getattr(result, "outdir", "."), "morphZ")
     os.makedirs(morphz_output_dir, exist_ok=True)
     morphz_results = morphz_evidence(
         post_samples=morphz_samples,
@@ -106,17 +105,6 @@ def compute_morphz_evidence(
         "n_estimations": n_estimations,
     }
 
-    summary_path = os.path.join(morphz_output_dir, "morphz_summary.json")
-    with open(summary_path, "w", encoding="utf-8") as fh:
-        json.dump(summary, fh, indent=2)
-    np.savez(
-        os.path.join(morphz_output_dir, "morphz_results.npz"),
-        logz_runs=logz_runs,
-        err_runs=err_runs,
-        logz_estimate=logz_estimate,
-        error_estimate=error_estimate,
-    )
-
     return summary
 
 
@@ -130,7 +118,7 @@ def main(seed=88170235):
     injection_parameters["geocent_time"] = 2.0
 
 
-    ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
+    ifos = bilby.gw.detector.InterferometerList(["H1"]) # Ignore L1 for faster runs during testing
     ifos.set_strain_data_from_power_spectral_densities(
         sampling_frequency=sampling_frequency,
         duration=duration,
@@ -154,6 +142,9 @@ def main(seed=88170235):
         "dec",
         "geocent_time",
         "phase",
+        # some more to make analysis even simpler
+        "luminosity_distance",
+        "theta_jn",
     ]:
         analysis_priors[key] = injection_parameters[key]
     # Perform a check that the prior does not extend to a parameter space longer than the data
@@ -184,16 +175,30 @@ def main(seed=88170235):
         likelihood=likelihood,
         analysis_priors=analysis_priors,
         fixed_parameters=injection_parameters,
-        outdir=outdir,
     )
-    if morphz_summary is not None:
-        runs = len(morphz_summary["logz_runs"])
-        logz_est = morphz_summary["logz_estimate"]
-        err_est = morphz_summary["error_estimate"]
-        print(
-            f"morphZ LnZ (averaged over {runs} run{'s' if runs != 1 else ''}): "
-            f"{logz_est:.3f} +/- {err_est:.3f}"
-        )
+    runs = len(morphz_summary["logz_runs"])
+    logz_est = morphz_summary["logz_estimate"]
+    err_est = morphz_summary["error_estimate"]
+    print(
+        f"morphZ LnZ (averaged over {runs} run{'s' if runs != 1 else ''}): "
+        f"{logz_est:.3f} +/- {err_est:.3f}"
+    )
+    evidence_summary = {
+        "seed": seed,
+        "nested_sampling": {
+            "log_evidence": float(result.log_evidence),
+            "log_evidence_err": float(result.log_evidence_err),
+        },
+        "morphz": {
+            "log_evidence": morphz_summary["logz_estimate"],
+            "log_evidence_err": morphz_summary["error_estimate"],
+            "n_runs": len(morphz_summary["logz_runs"]),
+        },
+    }
+
+    summary_path = os.path.join(outdir, "evidence_summary.json")
+    with open(summary_path, "w", encoding="utf-8") as fh:
+        json.dump(evidence_summary, fh, indent=2)
 
 
 
