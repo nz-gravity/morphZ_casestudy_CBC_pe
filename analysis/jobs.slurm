@@ -13,10 +13,10 @@ source /fred/oz303/avajpeyi/studies/morphZ_casestudy_CBC_pe/.venv/bin/activate
 
 
 echo "Starting job ${SLURM_JOB_ID}, array task ${SLURM_ARRAY_TASK_ID}"
-echo "Running: ${SCRIPT} ${TASK_ARG}"
+echo "Running: ${SCRIPT} ${SLURM_ARRAY_TASK_ID}"
 date
 
-srun python cbc_pe.py  "${TASK_ARG}"
+srun python cbc_pe.py  ${SLURM_ARRAY_TASK_ID}
 
 rc=$?
 date
