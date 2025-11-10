@@ -82,7 +82,7 @@ ifos.plot_data(outdir=outdir, label=label)
 # -----------------------------------------------------------------------------
 # Priors
 # -----------------------------------------------------------------------------
-priors = bilby.gw.prior.BBHPriorDict(filename="pp.prior")
+priors = bilby.gw.prior.BBHPriorDict(filename="bbha.prior")
 priors['geocent_time'] = bilby.core.prior.Uniform(
     minimum=injection_parameters['geocent_time'] - 0.1,
     maximum=injection_parameters['geocent_time'] + 0.1,
