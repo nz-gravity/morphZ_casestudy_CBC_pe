@@ -82,43 +82,11 @@ ifos.plot_data(outdir=outdir, label=label)
 # -----------------------------------------------------------------------------
 # Priors
 # -----------------------------------------------------------------------------
-priors = bilby.gw.prior.BBHPriorDict()
-priors["chirp_mass"] = bilby.gw.prior.UniformInComponentsChirpMass(
-    name="chirp_mass", minimum=16, maximum=18
-)
-priors["mass_ratio"] = bilby.gw.prior.UniformInComponentsMassRatio(
-    name="mass_ratio", minimum=0.125, maximum=1
-)
-priors["a_1"] = bilby.core.prior.Uniform(name="a_1", minimum=0, maximum=0.99)
-priors["a_2"] = bilby.core.prior.Uniform(name="a_2", minimum=0, maximum=0.99)
-priors["tilt_1"] = bilby.core.prior.Sine(name="tilt_1")
-priors["tilt_2"] = bilby.core.prior.Sine(name="tilt_2")
-priors["phi_12"] = bilby.core.prior.Uniform(
-    name="phi_12", minimum=0, maximum=2 * np.pi, boundary="periodic"
-)
-priors["phi_jl"] = bilby.core.prior.Uniform(
-    name="phi_jl", minimum=0, maximum=2 * np.pi, boundary="periodic"
-)
-priors["luminosity_distance"] = bilby.gw.prior.UniformSourceFrame(
-    name="luminosity_distance", minimum=100, maximum=5000, unit="Mpc"
-)
-priors["dec"] = bilby.core.prior.Cosine(name="dec")
-priors["ra"] = bilby.core.prior.Uniform(
-    name="ra", minimum=0, maximum=2 * np.pi, boundary="periodic"
-)
-priors["cos_theta_jn"] = bilby.core.prior.Uniform(
-    name="cos_theta_jn", minimum=-1, maximum=1
-)
-priors["psi"] = bilby.core.prior.Uniform(
-    name="psi", minimum=0, maximum=np.pi, boundary="periodic"
-)
-priors["delta_phase"] = bilby.core.prior.Uniform(
-    name="delta_phase", minimum=-np.pi, maximum=np.pi, boundary="periodic"
-)
-priors["geocent_time"] = bilby.core.prior.Uniform(
-    minimum=injection_parameters["geocent_time"] - 0.1,
-    maximum=injection_parameters["geocent_time"] + 0.1,
-    name="geocent_time",
+priors = bilby.gw.prior.BBHPriorDict(filename="pp.prior")
+priors['geocent_time'] = bilby.core.prior.Uniform(
+    minimum=injection_parameters['geocent_time'] - 0.1,
+    maximum=injection_parameters['geocent_time'] + 0.1,
+    name='geocent_time',
 )
 
 # -----------------------------------------------------------------------------
