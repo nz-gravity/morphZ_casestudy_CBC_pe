@@ -14,7 +14,7 @@ source /fred/oz303/avajpeyi/studies/morphZ_casestudy_CBC_pe/.venv/bin/activate
 echo "Starting job ${SLURM_JOB_ID}"
 date
 
-srun python run_analysis.py
+srun python bbha.py
 
 rc=$?
 date

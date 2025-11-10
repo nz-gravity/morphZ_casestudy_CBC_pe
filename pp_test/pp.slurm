@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=pp
-#SBATCH --output=logs/pp_%A_%a.out
-#SBATCH --error=logs/pp_%A_%a.err
+#SBATCH --output=logs/seed_%a.out
+#SBATCH --error=logs/seed_%a.err
 #SBATCH --time=05:00:00
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=8G
@@ -13,7 +13,6 @@ source /fred/oz303/avajpeyi/studies/morphZ_casestudy_CBC_pe/.venv/bin/activate
 
 
 echo "Starting job ${SLURM_JOB_ID}, array task ${SLURM_ARRAY_TASK_ID}"
-echo "Running: ${SCRIPT} ${SLURM_ARRAY_TASK_ID}"
 date
 
 srun python pp.py  ${SLURM_ARRAY_TASK_ID}
