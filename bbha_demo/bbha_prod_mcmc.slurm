@@ -13,7 +13,7 @@ source /fred/oz303/avajpeyi/studies/morphZ_casestudy_CBC_pe/.venv/bin/activate
 echo "Starting BBHA Bilby-MCMC prod job ${SLURM_JOB_ID}"
 date
 
-srun python bbha.py --samplers bilby-mcmc
+srun python bbha.py --samplers bilby_mcmc
 
 rc=$?
 date

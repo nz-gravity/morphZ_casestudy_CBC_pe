@@ -33,7 +33,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--samplers",
-    choices=["dynesty", "bilby-mcmc", "both"],
+    choices=["dynesty", "bilby_mcmc", "both"],
     default="both",
     help="Select which sampler(s) to execute (default: both).",
 )
@@ -42,7 +42,7 @@ sampler_settings = get_sampler_settings(quick=args.quick)
 mode_label = "QUICK" if args.quick else "PROD"
 logger.info("Using %s sampler settings.", mode_label)
 run_dynesty = args.samplers in ("dynesty", "both")
-run_mcmc = args.samplers in ("bilby-mcmc", "both")
+run_mcmc = args.samplers in ("bilby_mcmc", "both")
 
 outdir = "out_quick" if args.quick else "outdir"
 label = "GW150914"
@@ -205,7 +205,7 @@ if run_mcmc:
         result_mcmc = bilby.run_sampler(
             likelihood,
             priors,
-            sampler="bilby-mcmc",
+            sampler="bilby_mcmc",
             outdir=outdir,
             label=mcmc_label,
             sampler_kwargs=sampler_settings.as_bilby_mcmc_kwargs(),

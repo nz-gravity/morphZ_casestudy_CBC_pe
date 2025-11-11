@@ -14,7 +14,7 @@ source /fred/oz303/avajpeyi/studies/morphZ_casestudy_CBC_pe/.venv/bin/activate
 echo "Starting Bilby-MCMC prod job ${SLURM_JOB_ID}, array task ${SLURM_ARRAY_TASK_ID}"
 date
 
-srun python pp.py ${SLURM_ARRAY_TASK_ID} --samplers bilby-mcmc
+srun python pp.py ${SLURM_ARRAY_TASK_ID} --samplers bilby_mcmc
 
 rc=$?
 date

@@ -13,7 +13,7 @@ source /fred/oz303/avajpeyi/studies/morphZ_casestudy_CBC_pe/.venv/bin/activate
 echo "Starting GW150914 Bilby-MCMC prod job ${SLURM_JOB_ID}"
 date
 
-srun python GW150914.py --samplers bilby-mcmc
+srun python GW150914.py --samplers bilby_mcmc
 
 rc=$?
 date

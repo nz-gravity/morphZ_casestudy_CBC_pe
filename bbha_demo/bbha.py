@@ -5,7 +5,7 @@ Two-stage Bilby analysis:
   (2) Run Bilby-MCMC on the same injected signal
 
 Injection parameters and sampler configurations are adapted from config files
-used in bilby-mcmc paper
+used in bilby_mcmc paper
 https://git.ligo.org/gregory.ashton/bilby_mcmc_validation/-/tree/master/BBH_A
 """
 
@@ -38,7 +38,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--samplers",
-    choices=["dynesty", "bilby-mcmc", "both"],
+    choices=["dynesty", "bilby_mcmc", "both"],
     default="both",
     help="Select which sampler(s) to execute (default: both).",
 )
@@ -47,7 +47,7 @@ sampler_settings = get_sampler_settings(quick=args.quick)
 mode_label = "QUICK" if args.quick else "PROD"
 print(f"Using {mode_label} sampler settings.")
 run_dynesty = args.samplers in ("dynesty", "both")
-run_mcmc = args.samplers in ("bilby-mcmc", "both")
+run_mcmc = args.samplers in ("bilby_mcmc", "both")
 
 # -----------------------------------------------------------------------------
 # Global settings
