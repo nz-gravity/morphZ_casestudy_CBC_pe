@@ -10,10 +10,6 @@ module purge
 module load python-scientific/3.11.5-foss-2023b
 source /fred/oz303/avajpeyi/studies/morphZ_casestudy_CBC_pe/.venv/bin/activate
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "${SCRIPT_DIR}"
-mkdir -p logs
-
 echo "Starting GW150914 Dynesty quick job ${SLURM_JOB_ID}"
 date
 
