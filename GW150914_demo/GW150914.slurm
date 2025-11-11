@@ -2,7 +2,7 @@
 #SBATCH --job-name=GW150914
 #SBATCH --output=logs/GW150914.out
 #SBATCH --error=logs/GW150914.err
-#SBATCH --time=5:00:00
+#SBATCH --time=24:00:00
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=2G
 

@@ -2,7 +2,7 @@
 #SBATCH --job-name=bbha_cbc_pe
 #SBATCH --output=logs/bbha.out
 #SBATCH --error=logs/bbha.err
-#SBATCH --time=5:00:00
+#SBATCH --time=24:00:00
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=2G
 
