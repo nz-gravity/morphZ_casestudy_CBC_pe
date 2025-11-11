@@ -2,9 +2,9 @@
 #SBATCH --job-name=gw150914_q_mcmc
 #SBATCH --output=logs/quick_mcmc_%j.out
 #SBATCH --error=logs/quick_mcmc_%j.err
-#SBATCH --time=24:00:00
-#SBATCH --cpus-per-task=1
-#SBATCH --mem=2G
+#SBATCH --time=5:00:00
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=1G
 
 module purge
 module load python-scientific/3.11.5-foss-2023b

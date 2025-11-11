@@ -34,8 +34,8 @@ PROD_SETTINGS = SamplerMode(
     bilby_mcmc=dict(
         nsamples=2000,
         thin_by_nact=0.2,
-        ntemps=1,
-        npool=1,
+        ntemps=4,
+        npool=2,
         Tmax_from_SNR=20,
         adapt=True,
         proposal_cycle="gwA",
@@ -44,8 +44,6 @@ PROD_SETTINGS = SamplerMode(
     ),
 )
 
-# QUICK mode sacrifices resolution for turn-around time; the aim is to triage runs
-# or debug plumbing with lower computational cost while remaining representative.
 QUICK_SETTINGS = SamplerMode(
     dynesty=dict(
         nlive=500,
@@ -54,13 +52,13 @@ QUICK_SETTINGS = SamplerMode(
     bilby_mcmc=dict(
         nsamples=1000,
         thin_by_nact=0.2,
-        ntemps=1,
-        npool=1,
-        Tmax_from_SNR=15,
+        ntemps=4,
+        npool=4,
+        Tmax_from_SNR=20,
         adapt=True,
         proposal_cycle="gwA",
-        L1steps=50,
-        L2steps=3,
+        L1steps=100,
+        L2steps=5,
     ),
 )
 
