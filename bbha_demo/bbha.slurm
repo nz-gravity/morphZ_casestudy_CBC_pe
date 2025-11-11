@@ -4,7 +4,7 @@
 #SBATCH --error=logs/bbha.err
 #SBATCH --time=5:00:00
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G
+#SBATCH --mem=2G
 
 module purge
 module load python-scientific/3.11.5-foss-2023b

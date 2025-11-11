@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=pp
+#SBATCH --job-name=pp_%a
 #SBATCH --output=logs/seed_%a.out
 #SBATCH --error=logs/seed_%a.err
 #SBATCH --time=05:00:00
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G
+#SBATCH --mem=2G
 #SBATCH --array=1-100
 
 module purge

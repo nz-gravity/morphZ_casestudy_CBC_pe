@@ -13,10 +13,19 @@ This script:
 """
 
 import sys
-import bilby
-import numpy as np
-import pandas as pd
 from pathlib import Path
+
+import bilby
+import pandas as pd
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
+
+from compute_morphz_evidence import (
+    compute_morphz_evidence,
+    write_evidence_summary,
+)
 
 # -----------------------------------------------------------------------------
 # Parse CLI argument
@@ -26,6 +35,7 @@ if len(sys.argv) != 2:
 
 idx = int(sys.argv[1])
 label = f"seed_{idx}"
+checkpoint_delta_t = 1800  # seconds between checkpoints
 
 # -----------------------------------------------------------------------------
 # File paths
@@ -108,46 +118,108 @@ likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
 )
 
 # -----------------------------------------------------------------------------
-# Dynesty run
-# -----------------------------------------------------------------------------
-result_dynesty = bilby.run_sampler(
-    likelihood,
-    priors,
-    sampler="dynesty",
-    outdir=outdir,
-    label=label + "_dynesty",
-    nlive=1000,
-    nact=50,
-    check_point_delta_t=600,
-    npool=1,
-    conversion_function=bilby.gw.conversion.generate_all_bbh_parameters,
-    result_class=bilby.gw.result.CBCResult,
+dynesty_label = label + "_dynesty"
+dynesty_result_file = outdir / f"{dynesty_label}_result.json"
+if dynesty_result_file.exists():
+    print(f"Loading existing Dynesty result from {dynesty_result_file}")
+    result_dynesty = bilby.result.read_in_result(str(dynesty_result_file))
+else:
+    result_dynesty = bilby.run_sampler(
+        likelihood,
+        priors,
+        sampler="dynesty",
+        outdir=outdir,
+        label=dynesty_label,
+        nlive=1000,
+        nact=50,
+        check_point_delta_t=checkpoint_delta_t,
+        npool=1,
+        conversion_function=bilby.gw.conversion.generate_all_bbh_parameters,
+        result_class=bilby.gw.result.CBCResult,
+    )
+    result_dynesty.plot_corner()
+
+print(
+    f"Dynesty LnZ: {result_dynesty.log_evidence:.3f} +/- "
+    f"{result_dynesty.log_evidence_err:.3f}"
 )
-result_dynesty.plot_corner()
+dynesty_morph = compute_morphz_evidence(
+    result=result_dynesty,
+    likelihood=likelihood,
+    priors=priors,
+)
+print(
+    f"morphZ LnZ (Dynesty posterior): {dynesty_morph['logz_estimate']:.3f} +/- "
+    f"{dynesty_morph['error_estimate']:.3f}"
+)
 
 # -----------------------------------------------------------------------------
-# Bilby-MCMC run
-# -----------------------------------------------------------------------------
-result_mcmc = bilby.run_sampler(
-    likelihood,
-    priors,
-    sampler="bilby_mcmc",
-    outdir=outdir,
-    label=label + "_mcmc",
-    sampler_kwargs=dict(
-        nsamples=2000,
-        thin_by_nact=0.2,
-        ntemps=1,
-        npool=1,
-        Tmax_from_SNR=20,
-        adapt=True,
-        proposal_cycle="gwA",
-        L1steps=100,
-        L2steps=5,
-    ),
-    conversion_function=bilby.gw.conversion.generate_all_bbh_parameters,
+mcmc_label = label + "_mcmc"
+mcmc_result_file = outdir / f"{mcmc_label}_result.json"
+if mcmc_result_file.exists():
+    print(f"Loading existing Bilby-MCMC result from {mcmc_result_file}")
+    result_mcmc = bilby.result.read_in_result(str(mcmc_result_file))
+else:
+    result_mcmc = bilby.run_sampler(
+        likelihood,
+        priors,
+        sampler="bilby_mcmc",
+        outdir=outdir,
+        label=mcmc_label,
+        sampler_kwargs=dict(
+            nsamples=2000,
+            thin_by_nact=0.2,
+            ntemps=1,
+            npool=1,
+            Tmax_from_SNR=20,
+            adapt=True,
+            proposal_cycle="gwA",
+            L1steps=100,
+            L2steps=5,
+        ),
+        check_point_delta_t=checkpoint_delta_t,
+        conversion_function=bilby.gw.conversion.generate_all_bbh_parameters,
+    )
+    result_mcmc.plot_corner()
+
+mcmc_morph = compute_morphz_evidence(
+    result=result_mcmc,
+    likelihood=likelihood,
+    priors=priors,
 )
-result_mcmc.plot_corner()
+print(
+    f"morphZ LnZ (Bilby-MCMC posterior): {mcmc_morph['logz_estimate']:.3f} +/- "
+    f"{mcmc_morph['error_estimate']:.3f}"
+)
+
+summary_rows = [
+    {
+        "entry": "dynesty_original",
+        "method": "dynesty",
+        "kind": "sampler",
+        "log_evidence": result_dynesty.log_evidence,
+        "log_evidence_err": result_dynesty.log_evidence_err,
+        "n_runs": 1,
+    },
+    {
+        "entry": "dynesty_morphz",
+        "method": "dynesty",
+        "kind": "morphZ",
+        "log_evidence": dynesty_morph["logz_estimate"],
+        "log_evidence_err": dynesty_morph["error_estimate"],
+        "n_runs": dynesty_morph["n_runs"],
+    },
+    {
+        "entry": "mcmc_morphz",
+        "method": "bilby_mcmc",
+        "kind": "morphZ",
+        "log_evidence": mcmc_morph["logz_estimate"],
+        "log_evidence_err": mcmc_morph["error_estimate"],
+        "n_runs": mcmc_morph["n_runs"],
+    },
+]
+summary_path = write_evidence_summary(outdir, summary_rows)
+print(f"Evidence summary saved to {summary_path}")
 
 print(f"\nAnalysis for injection {idx} complete.")
 print(f"Results saved in {outdir.resolve()}")
