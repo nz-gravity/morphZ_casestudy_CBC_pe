@@ -122,11 +122,7 @@ priors = bilby.gw.prior.BBHPriorDict(filename="GW150914.prior")
 priors["geocent_time"] = bilby.core.prior.Uniform(
     trigger_time - 0.1, trigger_time + 0.1, name="geocent_time"
 )
-luminosity_prior = priors.get("luminosity_distance")
-if isinstance(luminosity_prior, Number): # THIS SEEMS TO BE NEED BY BILBY_MCMC
-    priors["luminosity_distance"] = bilby.core.prior.DeltaFunction(
-        peak=float(luminosity_prior), name="luminosity_distance"
-    )
+
 
 # In this step we define a `waveform_generator`. This is the object which
 # creates the frequency-domain strain. In this instance, we are using the
