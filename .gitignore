@@ -1,3 +1,16 @@
+## BILBY
+*.pickle
+*.h5
+*.dat
+*.txt
+*.json
+outdir/
+out*
+*.npz
+.distance_marginalization_lookup.npz
+out_quick/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

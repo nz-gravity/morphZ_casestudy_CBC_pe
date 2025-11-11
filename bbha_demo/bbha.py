@@ -193,7 +193,7 @@ if run_mcmc:
             sampler="bilby_mcmc",
             outdir=outdir,
             label=mcmc_label,
-            sampler_kwargs=sampler_settings.as_bilby_mcmc_kwargs(),
+            **sampler_settings.as_bilby_mcmc_kwargs(),
             check_point_delta_t=checkpoint_delta_t,
             conversion_function=bilby.gw.conversion.generate_all_bbh_parameters,
         )
