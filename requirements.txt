@@ -1,2 +1,3 @@
 bilby[gw]
+bilby>=2.7.1
 morphZ
