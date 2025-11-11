@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable, List, Optional
 
 import bilby
 import numpy as np
@@ -132,3 +132,147 @@ def write_evidence_summary(
             record.update(row)
             writer.writerow(record)
     return output_path
+
+
+def gather_evidence_rows(
+    *,
+    dynesty_result: Optional[bilby.result.Result] = None,
+    dynesty_morph: Optional[dict] = None,
+    mcmc_result: Optional[bilby.result.Result] = None,
+    mcmc_morph: Optional[dict] = None,
+    logger: Optional[Callable[[str], None]] = None,
+) -> List[dict]:
+    """
+    Build a standardized list of evidence rows, including alternate LnZ estimates.
+
+    Parameters
+    ----------
+    dynesty_result:
+        Result object returned by Dynesty runs.
+    dynesty_morph:
+        Dictionary returned by `compute_morphz_evidence` for the Dynesty posterior.
+    mcmc_result:
+        Result object returned by Bilby-MCMC runs.
+    mcmc_morph:
+        Dictionary returned by `compute_morphz_evidence` for the Bilby-MCMC posterior.
+    logger:
+        Optional callable used to log any extra evidence estimates (e.g., stepping stone).
+    """
+
+    rows: List[dict] = []
+    rows.extend(
+        _result_evidence_rows(
+            result=dynesty_result,
+            method="dynesty",
+            entry_prefix="dynesty",
+            logger=logger,
+        )
+    )
+    rows.extend(
+        _result_evidence_rows(
+            result=mcmc_result,
+            method="bilby_mcmc",
+            entry_prefix="bilby_mcmc",
+            logger=logger,
+        )
+    )
+
+    if dynesty_morph is not None:
+        rows.append(
+            _morph_row(
+                entry="dynesty_morphz",
+                method="dynesty",
+                morph_dict=dynesty_morph,
+            )
+        )
+    if mcmc_morph is not None:
+        rows.append(
+            _morph_row(
+                entry="mcmc_morphz",
+                method="bilby_mcmc",
+                morph_dict=mcmc_morph,
+            )
+        )
+
+    return rows
+
+
+def _result_evidence_rows(
+    *,
+    result: Optional[bilby.result.Result],
+    method: str,
+    entry_prefix: str,
+    logger: Optional[Callable[[str], None]],
+) -> List[dict]:
+    rows: List[dict] = []
+    if result is None:
+        return rows
+
+    log_evidence = getattr(result, "log_evidence", None)
+    log_evidence_err = getattr(result, "log_evidence_err", None)
+    if log_evidence is not None:
+        rows.append(
+            dict(
+                entry=f"{entry_prefix}_original",
+                method=method,
+                kind="sampler",
+                log_evidence=log_evidence,
+                log_evidence_err=log_evidence_err,
+                n_runs=1,
+            )
+        )
+
+    lnz_dict = _getattr_default(result, ["ln_z_dict", "log_evidence_dict"])
+    lnz_err_dict = _getattr_default(result, ["ln_z_err_dict", "log_evidence_err_dict"])
+    if lnz_dict:
+        for key, value in lnz_dict.items():
+            err = None
+            if isinstance(lnz_err_dict, dict):
+                err = lnz_err_dict.get(key)
+            _log_ln_z(logger, method, key, value, err)
+            rows.append(
+                dict(
+                    entry=f"{entry_prefix}_{key}",
+                    method=method,
+                    kind=f"sampler_{key}",
+                    log_evidence=value,
+                    log_evidence_err=err,
+                    n_runs=1,
+                )
+            )
+    return rows
+
+
+def _morph_row(entry: str, method: str, morph_dict: dict) -> dict:
+    return dict(
+        entry=entry,
+        method=method,
+        kind="morphZ",
+        log_evidence=morph_dict["logz_estimate"],
+        log_evidence_err=morph_dict["error_estimate"],
+        n_runs=morph_dict["n_runs"],
+    )
+
+
+def _log_ln_z(
+    logger: Optional[Callable[[str], None]],
+    method: str,
+    estimator: str,
+    value: float,
+    err: Optional[float],
+) -> None:
+    if logger is None:
+        return
+    if err is None or not np.isfinite(err):
+        message = f"{method} LnZ [{estimator}]: {value:.3f}"
+    else:
+        message = f"{method} LnZ [{estimator}]: {value:.3f} +/- {err:.3f}"
+    logger(message)
+
+
+def _getattr_default(obj: object, names: Iterable[str]):
+    for name in names:
+        value = getattr(obj, name, None)
+        if value:
+            return value
+    return None
