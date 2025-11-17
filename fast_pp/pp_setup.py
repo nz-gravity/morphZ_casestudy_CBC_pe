@@ -89,7 +89,7 @@ def load_simulation(idx):
         ifos,
         waveform_generator,
         priors=priors,
-        time_marginalization=True,
+        time_marginalization=False,
         phase_marginalization=False,
         distance_marginalization=False,
     )
