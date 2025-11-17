@@ -37,7 +37,7 @@ def run_mcmc():
         label=label,
         nsamples=2000,
         thin_by_nact=0.2,
-        ntemps=NPOOL*2,
+        ntemps=NPOOL,
         npool=NPOOL,
         Tmax_from_SNR=20,
         adapt=True,

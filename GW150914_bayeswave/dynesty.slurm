@@ -2,8 +2,8 @@
 #SBATCH --job-name=gw150914_NS_wave
 #SBATCH --output=logs/dynesty_%j.out
 #SBATCH --error=logs/dynesty_%j.err
-#SBATCH --time=48:00:00
-#SBATCH --cpus-per-task=16
+#SBATCH --time=10:00:00
+#SBATCH --cpus-per-task=32
 #SBATCH --mem-per-cpu=1G
 #SBATCH --dependency=singleton
 

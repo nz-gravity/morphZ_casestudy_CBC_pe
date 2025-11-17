@@ -144,7 +144,7 @@ likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
     distance_marginalization=True,
     phase_marginalization=False,
     jitter_time=True,
-    reference_frame="H1L1",
+    reference_frame="sky",
     time_reference="geocent",
-    enforce_signal_duration=True,
+    # enforce_signal_duration=True,
 )

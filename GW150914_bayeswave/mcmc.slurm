@@ -2,7 +2,7 @@
 #SBATCH --job-name=gw150914_MCMC_wave
 #SBATCH --output=logs/mcmc_%j.out
 #SBATCH --error=logs/mcmc_%j.err
-#SBATCH --time=48:00:00
+#SBATCH --time=06:00:00
 #SBATCH --cpus-per-task=8
 #SBATCH --mem-per-cpu=1G
 #SBATCH --dependency=singleton
