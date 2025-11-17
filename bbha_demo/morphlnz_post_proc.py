@@ -7,7 +7,6 @@ This script rebuilds the likelihood/priors used in ``bbha.py`` and runs
 
 import sys
 from pathlib import Path
-import os
 import bilby
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -20,8 +19,8 @@ from compute_morphz_evidence import compute_morphz_evidence, load_result
 RESULT_PATH = '/fred/oz303/avajpeyi/studies/morphZ_casestudy_CBC_pe/bbha_demo/outdir/bbh_A_mcmc_result.json'
 
 
-def build_likelihood_and_priors():
-    """Recreate the priors and likelihood used in bbha.py."""
+def build_likelihood(priors):
+    """Recreate the likelihood used in bbha.py."""
     # Injection parameters match those used when generating the cached result
     injection_parameters = dict(
         chirp_mass=17.051544979894693,
@@ -66,14 +65,6 @@ def build_likelihood_and_priors():
         waveform_generator=waveform_generator, parameters=injection_parameters
     )
 
-    prior_file = Path(__file__).resolve().parent / "bbha.prior"
-    priors = bilby.gw.prior.BBHPriorDict(filename=str(prior_file))
-    priors['geocent_time'] = bilby.core.prior.Uniform(
-        minimum=injection_parameters['geocent_time'] - 0.1,
-        maximum=injection_parameters['geocent_time'] + 0.1,
-        name='geocent_time',
-    )
-
     likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
         ifos,
         waveform_generator,
@@ -83,15 +74,20 @@ def build_likelihood_and_priors():
         distance_marginalization=True,
     )
 
-    return likelihood, priors
+    return likelihood
 
 
 def main():
-    if os.path.exists(RESULT_PATH) is False:
-        result = load_result("outdir/bbh_A_mcmc_result.json")
-    else:
-        result = load_result(RESULT_PATH)
-    likelihood, priors = build_likelihood_and_priors()
+    result_path = (
+        Path("outdir") / "bbh_A_mcmc_result.json"
+        if not Path(RESULT_PATH).exists()
+        else Path(RESULT_PATH)
+    )
+    result = load_result(result_path)
+
+    # Use priors bundled with the result so time_jitter/time-marginalisation priors match
+    priors = result.priors
+    likelihood = build_likelihood(priors)
 
     morph = compute_morphz_evidence(
         result=result,

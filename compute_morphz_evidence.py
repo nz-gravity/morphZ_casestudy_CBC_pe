@@ -49,6 +49,13 @@ def compute_morphz_evidence(
     if morph_prior is None:
         raise RuntimeError("Priors are required for morphZ evidence calculation.")
 
+    missing_priors = set(param_names) - set(morph_prior.keys())
+    if missing_priors:
+        missing = ", ".join(sorted(missing_priors))
+        raise RuntimeError(
+            f"Priors missing definitions for required parameters: {missing}"
+        )
+
     def log_posterior(theta: np.ndarray) -> float:
         params = dict(zip(param_names, theta))
         log_prior = morph_prior.ln_prob(params)
