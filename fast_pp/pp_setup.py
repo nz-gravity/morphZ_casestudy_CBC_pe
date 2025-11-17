@@ -13,6 +13,7 @@ Defines load_simulation(index) which:
 
 import sys
 from pathlib import Path
+import numpy as np
 import pandas as pd
 import bilby
 
@@ -71,10 +72,10 @@ def load_simulation(idx):
     # --------------------------------------------------------------
     # Priors with extrinsics fixed
     # --------------------------------------------------------------
-    priors = bilby.gw.prior.BBHPriorDict()
+    priors = bilby.gw.prior.BBHPriorDict('pp.prior')
     extrinsic = [
         "psi", "ra", "dec", "geocent_time",
-        "phase", "luminosity_distance", "theta_jn",
+        "phase", "luminosity_distance", "cos_theta_jn",
     ]
     for key in extrinsic:
         priors[key] = inj[key]
