@@ -25,7 +25,7 @@ def compute_morphz_evidence(
     result: bilby.result.Result,
     likelihood: bilby.likelihood.Likelihood,
     priors: bilby.prior.PriorDict | None = None,
-    n_resamples: int = 100,
+    n_resamples: int = 1000,
     morph_type: str = "pair",
     kde_bw: str | float = "silverman",
     n_estimations: int = 1,
