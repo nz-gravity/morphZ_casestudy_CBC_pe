@@ -8,6 +8,7 @@ This script rebuilds the likelihood/priors used in ``bbha.py`` and runs
 import sys
 from pathlib import Path
 import bilby
+import numpy as np
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -77,6 +78,55 @@ def build_likelihood(priors):
     return likelihood
 
 
+def check_loglik_consistency(
+    result: bilby.result.Result,
+    likelihood: bilby.likelihood.Likelihood,
+    max_samples: int = 256,
+    atol: float = 1e-6,
+    rtol: float = 1e-8,
+):
+    """
+    Recompute log-likelihoods for a subset of posterior samples and compare.
+
+    This is a quick sanity check that our reconstructed likelihood matches
+    the values stored in the result file.
+    """
+    posterior = result.posterior
+    param_names = list(result.search_parameter_keys)
+    if "log_likelihood" not in posterior:
+        raise RuntimeError("Posterior missing log_likelihood column for comparison.")
+
+    n = min(max_samples, len(posterior))
+    stored = posterior["log_likelihood"].to_numpy()[:n]
+    recomputed = []
+    for row in posterior[param_names].itertuples(index=False, name=None)[:n]:
+        params = dict(zip(param_names, row))
+        recomputed.append(likelihood.log_likelihood(params))
+    recomputed = np.asarray(recomputed)
+
+    diff = recomputed - stored
+    close = np.isclose(recomputed, stored, atol=atol, rtol=rtol)
+
+    print(f"LogL sanity check on {n} samples:")
+    print(
+        f"  within tol: {close.sum()} / {n} "
+        f"(atol={atol:g}, rtol={rtol:g})"
+    )
+    print(
+        f"  mean|diff|={np.mean(np.abs(diff)):.3e}, "
+        f"max|diff|={np.max(np.abs(diff)):.3e}"
+    )
+    if not close.all():
+        bad_idx = np.where(~close)[0][:5]
+        print("  first mismatches (stored, recomputed, diff):")
+        for idx in bad_idx:
+            print(
+                f"    {idx}: stored={stored[idx]:.6f}, "
+                f"recomputed={recomputed[idx]:.6f}, "
+                f"diff={diff[idx]:.3e}"
+            )
+
+
 def main():
     result_path = (
         Path("outdir") / "bbh_A_mcmc_result.json"
@@ -88,6 +138,9 @@ def main():
     # Use priors bundled with the result so time_jitter/time-marginalisation priors match
     priors = result.priors
     likelihood = build_likelihood(priors)
+
+    # Optional sanity check: our likelihood vs stored log_likelihood column
+    check_loglik_consistency(result, likelihood)
 
     morph = compute_morphz_evidence(
         result=result,
