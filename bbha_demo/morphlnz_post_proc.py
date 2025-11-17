@@ -7,7 +7,7 @@ This script rebuilds the likelihood/priors used in ``bbha.py`` and runs
 
 import sys
 from pathlib import Path
-
+import os
 import bilby
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -87,7 +87,10 @@ def build_likelihood_and_priors():
 
 
 def main():
-    result = load_result(RESULT_PATH)
+    if os.path.exists(RESULT_PATH) is False:
+        result = load_result("outdir/bbh_A_mcmc_result.json")
+    else:
+        result = load_result(RESULT_PATH)
     likelihood, priors = build_likelihood_and_priors()
 
     morph = compute_morphz_evidence(
