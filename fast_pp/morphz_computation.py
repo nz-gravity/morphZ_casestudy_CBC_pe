@@ -13,6 +13,10 @@ def get_morphz_evidence(result: bilby.result.Result,
                         ) -> dict:
     posterior = result.posterior
     param_names = list(result.search_parameter_keys)
+    print(f"Computing morphZ evidence for parameters: {param_names}")
+
+    print(f"Prior keys: {list(priors.keys())}")
+
     samples = posterior[param_names].to_numpy()
     log_likelihoods = posterior["log_likelihood"].to_numpy()
     log_priors = posterior["log_prior"].to_numpy()
@@ -35,7 +39,7 @@ def get_morphz_evidence(result: bilby.result.Result,
     if not np.allclose(test_log_posteriors, computed_log_posteriors, atol=1e-6):
         print("WARNING: Log posterior function does not match stored values.")
         print("Max difference:", np.max(np.abs(test_log_posteriors - computed_log_posteriors))) 
-        
+
     
 
     morphz_runs = morphz_evidence(
