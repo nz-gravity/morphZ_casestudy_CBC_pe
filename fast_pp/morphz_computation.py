@@ -16,12 +16,15 @@ def get_morphz_evidence(result: bilby.result.Result,
     fixed_params = priors.fixed_keys
     search_params = [p for p in param_names if p not in fixed_params]   
     fixed_param_vals = {p: priors[p].peak for p in fixed_params}
-    print(f"Computing morphZ evidence for parameters: {param_names}")
+    print(f"Computing morphZ evidence for parameters: {search_params}")
 
     samples = posterior[search_params].to_numpy()
     log_likelihoods = posterior["log_likelihood"].to_numpy()
     log_priors = posterior["log_prior"].to_numpy()
     log_posterior_values = log_likelihoods + log_priors
+
+    print(f"Number of posterior samples: {samples.shape[0]}")
+    print("Number of params:", samples.shape[1])
 
     def log_posterior(theta: np.ndarray) -> float:
         params = dict(zip(search_params, theta))
