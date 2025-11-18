@@ -8,7 +8,9 @@ from morphZ import evidence as morphz_evidence
 
 def get_morphz_evidence(result: bilby.result.Result,
                         priors:bilby.prior.PriorDict,
-                        likelihood:bilby.likelihood.Likelihood) -> dict:
+                        likelihood:bilby.likelihood.Likelihood,
+                        label: str = ""
+                        ) -> dict:
     posterior = result.posterior
     param_names = list(result.search_parameter_keys)
     samples = posterior[param_names].to_numpy()
@@ -32,7 +34,7 @@ def get_morphz_evidence(result: bilby.result.Result,
         morph_type='pair',
         kde_bw='silverman',
         param_names=param_names,
-        output_path=f"{result.outdir}/morphZ_{result.label}",
+        output_path=f"{result.outdir}/morphZ_{label}",
         n_estimations=10,
         verbose=True,
     )
@@ -46,8 +48,8 @@ def collect_lnz(idx):
     ) = load_simulation(idx)
 
     # load the two sets of results
-    result_dynesty = bilby.result.read_in_result(outdir / f"{label}_dynesty_result.json")
-    result_mcmc = bilby.result.read_in_result(outdir / f"{label}_mcmc_result.json")
+    result_dynesty = bilby.result.read_in_result(outdir / f"dynesty_result.json")
+    result_mcmc = bilby.result.read_in_result(outdir / f"mcmc_result.json")
 
     # compute morphz evidence for both
     morphz_dynesty = get_morphz_evidence(result_dynesty, priors, likelihood)
