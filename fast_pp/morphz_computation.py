@@ -13,15 +13,20 @@ def get_morphz_evidence(result: bilby.result.Result,
                         ) -> dict:
     posterior = result.posterior
     param_names = list(priors.keys())
+    fixed_params = priors.fixed_keys
+    search_params = [p for p in param_names if p not in fixed_params]   
+    fixed_param_vals = {p: priors[p].peak for p in fixed_params}
     print(f"Computing morphZ evidence for parameters: {param_names}")
 
-    samples = posterior[param_names].to_numpy()
+    samples = posterior[search_params].to_numpy()
     log_likelihoods = posterior["log_likelihood"].to_numpy()
     log_priors = posterior["log_prior"].to_numpy()
     log_posterior_values = log_likelihoods + log_priors
 
     def log_posterior(theta: np.ndarray) -> float:
-        params = dict(zip(param_names, theta))
+        params = dict(zip(search_params, theta))
+        params.update(fixed_param_vals)
+
         log_prior = priors.ln_prob(params)
         if not np.isfinite(log_prior):
             return log_prior
@@ -40,7 +45,6 @@ def get_morphz_evidence(result: bilby.result.Result,
         print("Max difference:", np.max(np.abs(test_log_posteriors - computed_log_posteriors))) 
 
     
-
     morphz_runs = morphz_evidence(
         post_samples=samples,
         log_posterior_values=log_posterior_values,
