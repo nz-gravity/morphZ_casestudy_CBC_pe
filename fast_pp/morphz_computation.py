@@ -12,10 +12,8 @@ def get_morphz_evidence(result: bilby.result.Result,
                         label: str = ""
                         ) -> dict:
     posterior = result.posterior
-    param_names = list(result.search_parameter_keys)
+    param_names = list(priors.keys())
     print(f"Computing morphZ evidence for parameters: {param_names}")
-
-    print(f"Prior keys: {list(priors.keys())}")
 
     samples = posterior[param_names].to_numpy()
     log_likelihoods = posterior["log_likelihood"].to_numpy()
@@ -27,6 +25,7 @@ def get_morphz_evidence(result: bilby.result.Result,
         log_prior = priors.ln_prob(params)
         if not np.isfinite(log_prior):
             return log_prior
+        likelihood.parameters.update(params)
         log_likelihood = likelihood.log_likelihood(params)
         return log_likelihood + log_prior
 
