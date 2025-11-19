@@ -70,7 +70,15 @@ def get_morphz_evidence(result: bilby.result.Result,
             print(f"  Log Prior - Original: {log_prior_orig}, New: {log_prior_new}")
             print(f"  Log Likelihood - Original: {log_likelihood_orig}, New: {log_likelihood_new}")
             print(f"  Difference in Log Posterior: {(log_likelihood_orig + log_prior_orig) - (log_likelihood_new + log_prior_new)}")
-            
+
+    # recompute Likelihoods for all samples to ensure consistency
+    print("Recomputing log posterior values for all samples to ensure consistency...")
+    size = samples.shape[0]
+    for i in range(size):
+        log_posterior_values[i] = log_posterior(samples[i, :])
+
+    
+
 
 
     
