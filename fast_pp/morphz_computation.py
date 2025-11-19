@@ -6,6 +6,7 @@ import os
 import tqdm
 from morphZ import evidence as morphz_evidence
 import multiprocessing
+from tqdm import trange
 
 
 # Get NPool based on SLURM environment variables or mp.cpu_count()
@@ -41,14 +42,15 @@ def get_morphz_evidence(result: bilby.result.Result,
 
 
     print(f"Number of posterior samples: {samples.shape[0]}")
-    # thin posteiror samples to 2000
-    if samples.shape[0] > 2000:
-        indices = np.random.choice(samples.shape[0], size=2000, replace=False)
+    Npost = 3000
+    # thin posteiror samples to Npost
+    if samples.shape[0] > Npost:
+        indices = np.random.choice(samples.shape[0], size=Npost, replace=False)
         samples = samples[indices]
         log_posterior_values = log_posterior_values[indices]
         log_likelihoods = log_likelihoods[indices]
         log_priors = log_priors[indices]
-        print("Thinned posterior samples to 2000.")
+        print(f"Thinned posterior samples to {Npost}.")
 
     print("Number of params:", samples.shape[1])
 
@@ -65,7 +67,7 @@ def get_morphz_evidence(result: bilby.result.Result,
     # recompute Likelihoods for all samples to ensure consistency
     print("Recomputing log posterior values for all samples to ensure consistency...")
     size = samples.shape[0]
-    for i in range(size):
+    for i in trange(size):
         log_posterior_values[i] = log_posterior(samples[i, :])
 
     
@@ -73,7 +75,7 @@ def get_morphz_evidence(result: bilby.result.Result,
         post_samples=samples,
         log_posterior_values=log_posterior_values,
         log_posterior_function=log_posterior,
-        n_resamples=200,
+        n_resamples=1000,
         morph_type='2_group',
         kde_bw='silverman',
         param_names=search_params,
