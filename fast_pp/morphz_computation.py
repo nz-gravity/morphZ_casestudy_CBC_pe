@@ -56,6 +56,22 @@ def get_morphz_evidence(result: bilby.result.Result,
     if not np.allclose(test_log_posteriors, computed_log_posteriors, atol=1e-6):
         print("WARNING: Log posterior function does not match stored values.")
         print("Max difference:", np.max(np.abs(test_log_posteriors - computed_log_posteriors))) 
+        
+        # print a few log_prior original, log_prior new, log_likelihood original, log_likelihood new for debugging
+        for i in range(5):
+            idx = random_indices[i]
+            params = dict(zip(search_params, samples[idx]))
+            log_prior_orig = log_priors[idx]
+            log_likelihood_orig = log_likelihoods[idx]
+            log_prior_new = morph_priors.ln_prob(params)
+            likelihood.parameters.update({**params, **fixed_param_vals})
+            log_likelihood_new = likelihood.log_likelihood(likelihood.parameters)
+            print(f"Sample {i}:")
+            print(f"  Log Prior - Original: {log_prior_orig}, New: {log_prior_new}")
+            print(f"  Log Likelihood - Original: {log_likelihood_orig}, New: {log_likelihood_new}")
+            print(f"  Difference in Log Posterior: {(log_likelihood_orig + log_prior_orig) - (log_likelihood_new + log_prior_new)}")
+            
+
 
     
     morphz_runs = morphz_evidence(
