@@ -115,7 +115,7 @@ def collect_lnz(idx):
             result_mcmc.log_evidence,
             morphz_dynesty['lnz_mean'],
             morphz_mcmc['lnz_mean']
-        ]
+        ],
         'lnz_err': [
             result_dynesty.log_evidence_err,
             result_mcmc.log_evidence_err,
