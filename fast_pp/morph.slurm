@@ -14,7 +14,7 @@ module load python-scientific/3.11.5-foss-2023b
 source /fred/oz303/avajpeyi/studies/morphZ_casestudy_CBC_pe/.venv/bin/activate
 
 
-srun python morphz_computation.py --index ${SLURM_ARRAY_TASK_ID}
+srun python morphz_computation.py ${SLURM_ARRAY_TASK_ID}
 rc=$?
 
 date
