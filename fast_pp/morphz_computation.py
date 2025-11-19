@@ -122,7 +122,7 @@ def collect_lnz(idx):
     # print to console
     print("______________")
     print(lnz_df)
-    print("______________"
+    print("______________")
     lnz_df.to_csv(outdir / f"{label}_lnz_comparison.csv", index=False)
 
 if __name__ == "__main__":
