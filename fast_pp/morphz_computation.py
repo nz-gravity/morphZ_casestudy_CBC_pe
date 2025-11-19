@@ -5,7 +5,11 @@ import numpy as np
 import os
 import tqdm
 from morphZ import evidence as morphz_evidence
+import multiprocessing
 
+
+# Get NPool based on SLURM environment variables or mp.cpu_count()
+NPOOL = min(multiprocessing.cpu_count(), int(os.environ.get("SLURM_CPUS_PER_TASK", "1")))
 
 
 def get_morphz_evidence(result: bilby.result.Result,
@@ -35,7 +39,17 @@ def get_morphz_evidence(result: bilby.result.Result,
     log_priors = posterior["log_prior"].to_numpy()
     log_posterior_values = log_likelihoods + log_priors
 
+
     print(f"Number of posterior samples: {samples.shape[0]}")
+    # thin posteiror samples to 2000
+    if samples.shape[0] > 2000:
+        indices = np.random.choice(samples.shape[0], size=2000, replace=False)
+        samples = samples[indices]
+        log_posterior_values = log_posterior_values[indices]
+        log_likelihoods = log_likelihoods[indices]
+        log_priors = log_priors[indices]
+        print("Thinned posterior samples to 2000.")
+
     print("Number of params:", samples.shape[1])
 
     def log_posterior(theta: np.ndarray) -> float:
@@ -48,30 +62,6 @@ def get_morphz_evidence(result: bilby.result.Result,
         log_likelihood = likelihood.log_likelihood(params)
         return log_likelihood + log_prior
 
-
-    # sanity check - compare computed log posterior values with stored ones for ~100 random samples
-    random_indices = np.random.choice(len(samples), size=min(100, len(samples)), replace=False)
-    test_samples = samples[random_indices]
-    test_log_posteriors = log_posterior_values[random_indices]
-    computed_log_posteriors = np.array([log_posterior(sample) for sample in test_samples])  
-    if not np.allclose(test_log_posteriors, computed_log_posteriors, atol=1e-6):
-        print("WARNING: Log posterior function does not match stored values.")
-        print("Max difference:", np.max(np.abs(test_log_posteriors - computed_log_posteriors))) 
-        
-        # print a few log_prior original, log_prior new, log_likelihood original, log_likelihood new for debugging
-        for i in range(5):
-            idx = random_indices[i]
-            params = dict(zip(search_params, samples[idx]))
-            log_prior_orig = log_priors[idx]
-            log_likelihood_orig = log_likelihoods[idx]
-            log_prior_new = morph_priors.ln_prob(params)
-            likelihood.parameters.update({**params, **fixed_param_vals})
-            log_likelihood_new = likelihood.log_likelihood(likelihood.parameters)
-            print(f"Sample {i}:")
-            print(f"  Log Prior - Original: {log_prior_orig}, New: {log_prior_new}")
-            print(f"  Log Likelihood - Original: {log_likelihood_orig}, New: {log_likelihood_new}")
-            print(f"  Difference in Log Posterior: {(log_likelihood_orig + log_prior_orig) - (log_likelihood_new + log_prior_new)}")
-
     # recompute Likelihoods for all samples to ensure consistency
     print("Recomputing log posterior values for all samples to ensure consistency...")
     size = samples.shape[0]
@@ -79,23 +69,24 @@ def get_morphz_evidence(result: bilby.result.Result,
         log_posterior_values[i] = log_posterior(samples[i, :])
 
     
-
-
-
-    
-    morphz_runs = morphz_evidence(
+    morphz_lnzs = morphz_evidence(
         post_samples=samples,
         log_posterior_values=log_posterior_values,
         log_posterior_function=log_posterior,
-        n_resamples=500,
+        n_resamples=200,
         morph_type='2_group',
         kde_bw='silverman',
         param_names=search_params,
         output_path=f"{result.outdir}/morphZ_{label}",
-        n_estimations=10,
+        n_estimations=100,
         verbose=True,
+        pool=NPOOL,
     )
-    return morphz_runs
+
+    # get mean and std of logz from multiple runs
+    morphz_lnzs = np.array(morphz_lnzs) # shape (n_estimations, 2)
+    morphz_lnz = np.mean(morphz_lnzs, axis=0) # shape (2,)
+    return dict(lnz_mean=float(morphz_lnz[0], lnz_err=float(morphz_lnz[1])) # type: ignore
 
 
 def collect_lnz(idx):
@@ -121,8 +112,17 @@ def collect_lnz(idx):
             morphz_dynesty['lnz_mean'],
             morphz_mcmc['lnz_mean']
         ]
+        'lnz_err': [
+            result_dynesty.log_evidence_err,
+            result_mcmc.log_evidence_err,
+            morphz_dynesty['lnz_err'],
+            morphz_mcmc['lnz_err']
     }
     lnz_df = pd.DataFrame(lnz_data)
+    # print to console
+    print("______________")
+    print(lnz_df)
+    print("______________"
     lnz_df.to_csv(outdir / f"{label}_lnz_comparison.csv", index=False)
 
 if __name__ == "__main__":
