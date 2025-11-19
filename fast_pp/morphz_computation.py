@@ -16,8 +16,8 @@ def get_morphz_evidence(result: bilby.result.Result,
     param_names = list(priors.keys())
     fixed_params = priors.fixed_keys
     search_params = [p for p in param_names if p not in fixed_params] 
-    priors = {p: priors[p] for p in search_params}  
-    priors = bilby.prior.PriorDict(priors)
+    morph_priors = {p: priors[p] for p in search_params}  
+    morph_priors = bilby.prior.PriorDict(morph_priors)
     # remove 'mass_1' and 'mass_2' if 'chirp_mass' and 'mass_ratio' are present
     if 'chirp_mass' in search_params and 'mass_ratio' in search_params:
         search_params = [p for p in search_params if p not in ['mass_1', 'mass_2']]
@@ -38,7 +38,7 @@ def get_morphz_evidence(result: bilby.result.Result,
         params = dict(zip(search_params, theta))
         params.update(fixed_param_vals)
 
-        log_prior = priors.ln_prob(params)
+        log_prior = morph_priors.ln_prob(params)
         if not np.isfinite(log_prior):
             return log_prior
         likelihood.parameters.update(params)
