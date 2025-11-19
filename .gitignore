@@ -9,7 +9,7 @@ out*
 *.npz
 .distance_marginalization_lookup.npz
 out_quick/
-
+.idea
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
