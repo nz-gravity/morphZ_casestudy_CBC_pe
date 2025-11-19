@@ -25,6 +25,7 @@ def get_morphz_evidence(result: bilby.result.Result,
     # remove the priors with fixed params
     
     print(f"Computing morphZ evidence for parameters: {search_params}")
+    print("morph-prior:", morph_priors)
 
     samples = posterior[search_params].to_numpy()
     log_likelihoods = posterior["log_likelihood"].to_numpy()
