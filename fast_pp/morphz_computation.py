@@ -5,12 +5,9 @@ import numpy as np
 import os
 import tqdm
 from morphZ import evidence as morphz_evidence
-import multiprocessing
 from tqdm import trange
 
 
-# Get NPool based on SLURM environment variables or mp.cpu_count()
-NPOOL = min(multiprocessing.cpu_count(), int(os.environ.get("SLURM_CPUS_PER_TASK", "1")))
 
 
 def get_morphz_evidence(result: bilby.result.Result,
@@ -82,7 +79,6 @@ def get_morphz_evidence(result: bilby.result.Result,
         output_path=f"{result.outdir}/morphZ_{label}",
         n_estimations=100,
         verbose=True,
-        pool=NPOOL,
     )
 
     # get mean and std of logz from multiple runs

@@ -3,7 +3,7 @@
 #SBATCH --output=logs/morph/index_%a.out
 #SBATCH --error=logs/morph/index_%a.err
 #SBATCH --time=00:15:00
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=2G
 #SBATCH --array=1-100
 
