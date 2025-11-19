@@ -3,6 +3,7 @@ from pp_setup import load_simulation
 import pandas as pd
 import numpy as np
 import os
+import tqdm
 from morphZ import evidence as morphz_evidence
 
 
@@ -86,7 +87,7 @@ def get_morphz_evidence(result: bilby.result.Result,
         post_samples=samples,
         log_posterior_values=log_posterior_values,
         log_posterior_function=log_posterior,
-        n_resamples=5000,
+        n_resamples=500,
         morph_type='2_group',
         kde_bw='silverman',
         param_names=search_params,
