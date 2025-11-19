@@ -36,9 +36,8 @@ def get_morphz_evidence(result: bilby.result.Result,
 
     def log_posterior(theta: np.ndarray) -> float:
         params = dict(zip(search_params, theta))
-        params.update(fixed_param_vals)
-
         log_prior = morph_priors.ln_prob(params)
+        params.update(fixed_param_vals)
         if not np.isfinite(log_prior):
             return log_prior
         likelihood.parameters.update(params)
