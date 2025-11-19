@@ -6,6 +6,7 @@ import os
 from morphZ import evidence as morphz_evidence
 
 
+
 def get_morphz_evidence(result: bilby.result.Result,
                         priors:bilby.prior.PriorDict,
                         likelihood:bilby.likelihood.Likelihood,
@@ -14,11 +15,15 @@ def get_morphz_evidence(result: bilby.result.Result,
     posterior = result.posterior
     param_names = list(priors.keys())
     fixed_params = priors.fixed_keys
-    search_params = [p for p in param_names if p not in fixed_params]   
+    search_params = [p for p in param_names if p not in fixed_params] 
+    priors = {p: priors[p] for p in search_params}  
+    priors = bilby.prior.PriorDict(priors)
     # remove 'mass_1' and 'mass_2' if 'chirp_mass' and 'mass_ratio' are present
     if 'chirp_mass' in search_params and 'mass_ratio' in search_params:
         search_params = [p for p in search_params if p not in ['mass_1', 'mass_2']]
     fixed_param_vals = {p: priors[p].peak for p in fixed_params}
+    # remove the priors with fixed params
+    
     print(f"Computing morphZ evidence for parameters: {search_params}")
 
     samples = posterior[search_params].to_numpy()
