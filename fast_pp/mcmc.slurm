@@ -6,6 +6,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem-per-cpu=1G
 #SBATCH --array=1-100
+#SBATCH --dependency=singleton
 
 mkdir -p logs/mcmc
 
