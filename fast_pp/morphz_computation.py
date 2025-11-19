@@ -117,6 +117,7 @@ def collect_lnz(idx):
             result_mcmc.log_evidence_err,
             morphz_dynesty['lnz_err'],
             morphz_mcmc['lnz_err']
+            ]
     }
     lnz_df = pd.DataFrame(lnz_data)
     # print to console
