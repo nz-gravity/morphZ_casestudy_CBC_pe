@@ -1,8 +1,9 @@
+import os
+
 import bilby
 from pp_setup import load_simulation
 import pandas as pd
 import numpy as np
-from pathlib import Path
 from typing import Optional, Union
 from morphZ import evidence as morphz_evidence
 from tqdm import trange
@@ -13,7 +14,7 @@ def get_morphz_evidence(
         priors: bilby.prior.PriorDict,
         likelihood: bilby.likelihood.Likelihood,
         label: str = "",
-        output_dir: Optional[Union[Path, str]] = None,
+        output_dir: Optional[Union[str, os.PathLike]] = None,
 ) -> dict:
     posterior = result.posterior
     param_names = list(priors.keys())
@@ -67,12 +68,12 @@ def get_morphz_evidence(
         log_posterior_values[i] = log_posterior(samples[i, :])
 
     if output_dir is not None:
-        target_outdir = Path(output_dir)
+        target_outdir = os.fspath(output_dir)
     else:
-        target_outdir = Path(result.outdir)
-    target_outdir.mkdir(parents=True, exist_ok=True)
+        target_outdir = os.fspath(result.outdir)
+    os.makedirs(target_outdir, exist_ok=True)
     label_suffix = f"_{label}" if label else ""
-    morphz_output_path = target_outdir / f"morphZ{label_suffix}"
+    morphz_output_path = os.path.join(target_outdir, f"morphZ{label_suffix}")
 
     morphz_lnzs = morphz_evidence(
         post_samples=samples,
@@ -82,7 +83,7 @@ def get_morphz_evidence(
         morph_type='2_group',
         kde_bw='silverman',
         param_names=search_params,
-        output_path=str(morphz_output_path),
+        output_path=morphz_output_path,
         n_estimations=100,
         verbose=True,
     )
@@ -96,21 +97,26 @@ def get_morphz_evidence(
     )
 
 
-def collect_lnz(idx, outdir_override: Optional[Union[Path, str]] = None):
+def collect_lnz(idx, outdir_override: Optional[Union[str, os.PathLike]] = None):
     # Load simulation data
     (
         likelihood, priors, outdir, label, _
     ) = load_simulation(idx)
 
+    default_outdir = os.fspath(outdir)
     if outdir_override is not None:
-        final_outdir = Path(outdir_override)
+        final_outdir = os.fspath(outdir_override)
     else:
-        final_outdir = outdir
-    final_outdir.mkdir(parents=True, exist_ok=True)
+        final_outdir = default_outdir
+    os.makedirs(final_outdir, exist_ok=True)
 
     # load the two sets of results
-    result_dynesty = bilby.result.read_in_result(outdir / f"dynesty_result.json")
-    result_mcmc = bilby.result.read_in_result(outdir / f"mcmc_result.json")
+    result_dynesty = bilby.result.read_in_result(
+        os.path.join(default_outdir, "dynesty_result.json")
+    )
+    result_mcmc = bilby.result.read_in_result(
+        os.path.join(default_outdir, "mcmc_result.json")
+    )
 
     # compute morphz evidence for both
     morphz_dynesty = get_morphz_evidence(
@@ -149,7 +155,10 @@ def collect_lnz(idx, outdir_override: Optional[Union[Path, str]] = None):
     print("______________")
     print(lnz_df)
     print("______________")
-    lnz_df.to_csv(final_outdir / f"{label}_lnz_comparison.csv", index=False)
+    lnz_df.to_csv(
+        os.path.join(final_outdir, f"{label}_lnz_comparison.csv"),
+        index=False
+    )
 
 
 if __name__ == "__main__":
