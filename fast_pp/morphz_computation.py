@@ -86,7 +86,11 @@ def get_morphz_evidence(result: bilby.result.Result,
     # get mean and std of logz from multiple runs
     morphz_lnzs = np.array(morphz_lnzs) # shape (n_estimations, 2)
     morphz_lnz = np.mean(morphz_lnzs, axis=0) # shape (2,)
-    return dict(lnz_mean=float(morphz_lnz[0], lnz_err=float(morphz_lnz[1])) # type: ignore
+    return dict(
+        lnz_mean=float(morphz_lnz[0]), 
+        lnz_err=float(morphz_lnz[1]) 
+        )
+
 
 
 def collect_lnz(idx):
