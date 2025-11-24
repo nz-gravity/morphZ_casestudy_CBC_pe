@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 
 import matplotlib as mpl
@@ -9,15 +10,16 @@ import numpy as np
 import pandas as pd
 
 
-METHODS = [
-    "dynesty",
-    "mcmc",
-    "dynesty_morphz",
-    "mcmc_morphz",
-]
+METHODS = ["dynesty", "mcmc", "dynesty_morphz", "mcmc_morphz"]
 DEFAULT_ROOT_DIR = Path("/fred/oz303/ezahraoui/github/fast_pp/outdir")
 CACHE_FILENAME = "evidences.csv"
 PLOT_FILENAME = "pp_lnz.png"
+COLUMN_MAP = {
+    "dynesty": ("lnz_dynesty", "lnz_err_dynesty"),
+    "mcmc": ("lnz_mcmc", "lnz_err_mcmc"),
+    "dynesty_morphz": ("lnz_morph_dynesty", "lnz_err_morph_dynesty"),
+    "mcmc_morphz": ("lnz_morph_mcmc", "lnz_err_morph_mcmc"),
+}
 
 
 def load_seed_comparisons(root_dir: Path) -> dict[str, pd.DataFrame]:
@@ -33,16 +35,43 @@ def load_seed_comparisons(root_dir: Path) -> dict[str, pd.DataFrame]:
     return data
 
 
-def comparisons_to_frame(comparisons: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    """Flatten the per-seed comparisons into a single table."""
-    rows = []
-    for seed, df in comparisons.items():
-        df = df.copy()
-        df["seed"] = seed
-        rows.append(df[["seed", "method", "lnz", "lnz_err"]])
-    if not rows:
-        return pd.DataFrame(columns=["seed", "method", "lnz", "lnz_err"])
-    return pd.concat(rows, ignore_index=True)
+def extract_seed_index(seed_label: str) -> int | None:
+    match = re.search(r"(\d+)", seed_label)
+    if match:
+        try:
+            return int(match.group(1))
+        except ValueError:
+            return None
+    return None
+
+
+def comparisons_to_wide_frame(comparisons: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Flatten the per-seed comparisons into a single wide table."""
+    rows: list[dict[str, float | int]] = []
+    fallback_index = 0
+    for seed_name in sorted(comparisons):
+        df = comparisons[seed_name]
+        seed_value = extract_seed_index(seed_name)
+        if seed_value is None:
+            seed_value = fallback_index
+            fallback_index += 1
+        row: dict[str, float | int] = {"seed": seed_value}
+        for method, (value_col, err_col) in COLUMN_MAP.items():
+            row[value_col] = np.nan
+            row[err_col] = np.nan
+        for _, method_row in df.iterrows():
+            method_name = str(method_row["method"]).strip().lower()
+            if method_name not in COLUMN_MAP:
+                continue
+            value_col, err_col = COLUMN_MAP[method_name]
+            row[value_col] = method_row["lnz"]
+            row[err_col] = method_row.get("lnz_err", np.nan)
+        rows.append(row)
+
+    columns = ["seed"]
+    for method, (value_col, err_col) in COLUMN_MAP.items():
+        columns.extend([value_col, err_col])
+    return pd.DataFrame(rows, columns=columns)
 
 
 def load_cached_results(
@@ -52,24 +81,43 @@ def load_cached_results(
     cache_path.parent.mkdir(parents=True, exist_ok=True)
 
     if cache_path.exists() and not force_refresh:
-        return frame_to_comparisons(pd.read_csv(cache_path))
+        return wide_frame_to_comparisons(pd.read_csv(cache_path))
 
     comparisons = load_seed_comparisons(root_dir)
-    combined = comparisons_to_frame(comparisons)
+    combined = comparisons_to_wide_frame(comparisons)
     if combined.empty:
         raise FileNotFoundError(
             f"No lnz comparison CSV files found under {root_dir}"
         )
     combined.to_csv(cache_path, index=False)
-    return frame_to_comparisons(combined)
+    return wide_frame_to_comparisons(combined)
 
 
-def frame_to_comparisons(frame: pd.DataFrame) -> dict[str, pd.DataFrame]:
+def wide_frame_to_comparisons(frame: pd.DataFrame) -> dict[str, pd.DataFrame]:
     """Convert the cached table back into a seed -> DataFrame mapping."""
+    if frame.empty:
+        return {}
+
     results: dict[str, pd.DataFrame] = {}
-    grouped = frame.groupby("seed", sort=True)
-    for seed, df in grouped:
-        results[str(seed)] = df[["method", "lnz", "lnz_err"]].reset_index(drop=True)
+    for _, row in frame.iterrows():
+        seed_value = row.get("seed")
+        if pd.isna(seed_value):
+            continue
+        seed_label = f"seed_{int(seed_value)}"
+        entries = []
+        for method, (value_col, err_col) in COLUMN_MAP.items():
+            lnz = row.get(value_col)
+            if pd.isna(lnz):
+                continue
+            entries.append(
+                {
+                    "method": method,
+                    "lnz": float(lnz),
+                    "lnz_err": float(row.get(err_col, np.nan)),
+                }
+            )
+        if entries:
+            results[seed_label] = pd.DataFrame(entries)
     return results
 
 
