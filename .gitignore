@@ -1,3 +1,5 @@
+*.png
+
 ## BILBY
 *.pickle
 *.h5
