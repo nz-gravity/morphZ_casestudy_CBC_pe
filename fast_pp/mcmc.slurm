@@ -3,7 +3,7 @@
 #SBATCH --output=logs/mcmc/index_%a.out
 #SBATCH --error=logs/mcmc/index_%a.err
 #SBATCH --time=10:00:00
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=1G
 #SBATCH --array=1-100
 #SBATCH --dependency=singleton

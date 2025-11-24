@@ -4,7 +4,9 @@
 #SBATCH --error=logs/prod_dynesty_%j.err
 #SBATCH --time=48:00:00
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=2G
+#SBATCH --mem=1G
+#SBATCH --dependency=singleton
+
 
 module purge
 module load python-scientific/3.11.5-foss-2023b
