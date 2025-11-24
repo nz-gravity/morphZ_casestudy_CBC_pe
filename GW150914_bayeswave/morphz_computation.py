@@ -23,16 +23,24 @@ def get_morphz_evidence(result: bilby.result.Result,
                         ) -> dict:
     posterior = result.posterior
     param_names = list(priors.keys())
-    fixed_params = priors.fixed_keys
+    fixed_params = []
+    fixed_param_vals = {}
+    print("Total number of parameters in prior:", len(param_names))
+    for p in param_names:
+        print(f"  {p}: {priors[p]}, <<{type(priors[p])}>>")
+        # if floats are used in prior dict, they are fixed parameters
+        if isinstance(priors[p], (float, int)):
+            fixed_params.append(p)
+            fixed_param_vals[p] = priors[p]
+    # identify fixed parameters
+
+    print(f"Fixed parameters: {fixed_params}")
     search_params = [p for p in param_names if p not in fixed_params] 
     morph_priors = {p: priors[p] for p in search_params}  
     morph_priors = bilby.prior.PriorDict(morph_priors)
     # remove 'mass_1' and 'mass_2' if 'chirp_mass' and 'mass_ratio' are present
     if 'chirp_mass' in search_params and 'mass_ratio' in search_params:
         search_params = [p for p in search_params if p not in ['mass_1', 'mass_2']]
-    fixed_param_vals = {p: priors[p].peak for p in fixed_params}
-    # remove the priors with fixed params
-    
     print(f"Computing morphZ evidence for parameters: {search_params}")
     print("morph-prior:")
     for p in morph_priors:
