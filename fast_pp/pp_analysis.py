@@ -52,7 +52,7 @@ def run_mcmc(index):
         label="mcmc",
         nsamples=2000,
         thin_by_nact=0.2,
-        ntemps=NPOOL,   
+        ntemps=8,   
         npool=NPOOL,
         Tmax_from_SNR=20,
         adapt=True,

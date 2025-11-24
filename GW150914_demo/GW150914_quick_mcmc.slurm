@@ -3,8 +3,8 @@
 #SBATCH --output=logs/quick_mcmc_%j.out
 #SBATCH --error=logs/quick_mcmc_%j.err
 #SBATCH --time=5:00:00
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=1G
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=4G
 
 module purge
 module load python-scientific/3.11.5-foss-2023b
