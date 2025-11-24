@@ -71,7 +71,15 @@ def comparisons_to_wide_frame(comparisons: dict[str, pd.DataFrame]) -> pd.DataFr
     columns = ["seed"]
     for method, (value_col, err_col) in COLUMN_MAP.items():
         columns.extend([value_col, err_col])
-    return pd.DataFrame(rows, columns=columns)
+
+    frame = pd.DataFrame(rows, columns=columns)
+    return sort_wide_frame(frame)
+
+
+def sort_wide_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    if "seed" not in frame.columns:
+        return frame
+    return frame.sort_values(by="seed").reset_index(drop=True)
 
 
 def load_cached_results(
@@ -81,7 +89,9 @@ def load_cached_results(
     cache_path.parent.mkdir(parents=True, exist_ok=True)
 
     if cache_path.exists() and not force_refresh:
-        return wide_frame_to_comparisons(pd.read_csv(cache_path))
+        frame = sort_wide_frame(pd.read_csv(cache_path))
+        report_missing_seeds(frame)
+        return wide_frame_to_comparisons(frame)
 
     comparisons = load_seed_comparisons(root_dir)
     combined = comparisons_to_wide_frame(comparisons)
@@ -90,6 +100,7 @@ def load_cached_results(
             f"No lnz comparison CSV files found under {root_dir}"
         )
     combined.to_csv(cache_path, index=False)
+    report_missing_seeds(combined)
     return wide_frame_to_comparisons(combined)
 
 
@@ -119,6 +130,29 @@ def wide_frame_to_comparisons(frame: pd.DataFrame) -> dict[str, pd.DataFrame]:
         if entries:
             results[seed_label] = pd.DataFrame(entries)
     return results
+
+
+def report_missing_seeds(frame: pd.DataFrame) -> None:
+    if "seed" not in frame.columns or frame.empty:
+        print("No seed data found in cache.")
+        return
+
+    seeds = frame["seed"].dropna().astype(int)
+    if seeds.empty:
+        print("No valid seed numbers found.")
+        return
+
+    min_seed = seeds.min()
+    max_seed = seeds.max()
+    expected = set(range(min_seed, max_seed + 1))
+    present = set(seeds.tolist())
+    missing = sorted(expected - present)
+
+    if missing:
+        missing_str = ", ".join(str(m) for m in missing)
+        print(f"Missing seed numbers: {missing_str}")
+    else:
+        print(f"All seeds present from {min_seed} to {max_seed}.")
 
 
 def configure_matplotlib() -> None:
