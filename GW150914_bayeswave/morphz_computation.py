@@ -23,6 +23,8 @@ def get_morphz_evidence(result: bilby.result.Result,
                         ) -> dict:
     posterior = result.posterior
     param_names = list(priors.keys())
+    
+    print("FIXED PRIOR")
     fixed_params = priors.fixed_keys
     search_params = [p for p in param_names if p not in fixed_params] 
     morph_priors = {p: priors[p] for p in search_params}  
