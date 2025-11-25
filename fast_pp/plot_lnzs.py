@@ -11,9 +11,15 @@ import pandas as pd
 
 
 METHODS = ["dynesty", "mcmc", "dynesty_morphz", "mcmc_morphz"]
+LABELS = {
+    "dynesty": "Dynesty",
+    "mcmc": "SS(MCMC)",
+    "dynesty_morphz": "Morphz(Dynesty)",
+    "mcmc_morphz": "Morphz(MCMC)",
+}
 DEFAULT_ROOT_DIR = Path("/fred/oz303/ezahraoui/github/fast_pp/outdir")
+DEFAULT_PLOT_DIR = Path(__file__).resolve().parent / "outdir"
 CACHE_FILENAME = "evidences.csv"
-PLOT_FILENAME = "pp_lnz.png"
 COLUMN_MAP = {
     "dynesty": ("lnz_dynesty", "lnz_err_dynesty"),
     "mcmc": ("lnz_mcmc", "lnz_err_mcmc"),
@@ -234,20 +240,25 @@ def plot_delta_lnz_spaghetti(
     rel_err = rel_err[order]
 
     default_colors = {
-        "dynesty": "#8ab2b7",
-        "mcmc": "#f8474a",
-        "dynesty_morphz": "#19bac9",
-        "mcmc_morphz": "#c31e23",
+        "dynesty": "#1b9e77",
+        "mcmc": "#d95f02",
+        "dynesty_morphz": "#7570b3",
+        "mcmc_morphz": "#e7298a",
     }
 
     if colors:
         default_colors.update(colors)
 
-    fig, ax = plt.subplots(figsize=(11, 24))
+    fig, (ax_hist, ax) = plt.subplots(
+        2,
+        1,
+        figsize=(11, 26),
+        sharex=True,
+        gridspec_kw={"height_ratios": [1, 5], "hspace": 0},
+    )
     y = np.arange(len(seeds))
-    labels = ["Dynesty", "SS(MCMC)", "Morphz(Dynesty)", "Morphz(MCMC)"]
     for j, method in enumerate(methods):
-        if j == 1:
+        if j == base_idx:
             continue
         ax.errorbar(
             delta[:, j],
@@ -256,35 +267,111 @@ def plot_delta_lnz_spaghetti(
             fmt="o",
             ms=9,
             capsize=1,
-            elinewidth=7,
+            elinewidth=2,
             color=default_colors.get(method),
-            alpha=0.9,
-            label=f"{labels[j]} (baseline)" if j == base_idx else labels[j],
+            alpha=1.0,
+            label=LABELS.get(method, method),
         )
+
+    baseline_method = methods[base_idx]
     ax.errorbar(
-        delta[:, 0],
+        delta[:, base_idx],
         y,
-        xerr=rel_err[:, 0],
-        fmt="o",
+        xerr=rel_err[:, base_idx],
+        fmt="s",
         ms=8,
         capsize=1,
-        elinewidth=7,
-        color=default_colors.get("dynesty"),
-        alpha=0.9,
+        elinewidth=1.5,
+        color=default_colors.get(baseline_method),
+        alpha=0.6,
+        label=f"{LABELS.get(baseline_method, baseline_method)} (baseline)",
     )
-    ax.vlines(x=1, ymin=0, ymax=len(seeds) - 1, linestyles="dashed", alpha=0.5, colors="grey")
-    ax.vlines(x=-1, ymin=0, ymax=len(seeds) - 1, linestyles="dashed", alpha=0.6, colors="grey")
-
     ax.legend(loc="lower right", frameon=True)
     ax.axvline(0.0, color="k", lw=0.8, alpha=0.6)
-    ax.set_yticks(np.arange(0, len(seeds)))
-    ax.set_yticklabels(np.arange(1, len(seeds) + 1))
+    tick_positions = np.arange(0, len(seeds), 5)
+    ax.set_yticks(tick_positions)
+    ax.set_yticklabels((tick_positions + 1).astype(int))
     ax.set_xlabel("Δ log(z) relative to Dynesty")
     ax.set_ylim([-1, len(seeds)])
 
-    ax.grid(axis="y", alpha=0.1)
+    ax.grid(axis="both", alpha=0.1)
+    ax.tick_params(axis="y", which="both", length=0)
+    ax_hist.grid(False)
+    hist_indices = [j for j in range(len(methods)) if j != base_idx]
+    if hist_indices:
+        hist_samples = np.concatenate([delta[:, j] for j in hist_indices])
+        hist_samples = hist_samples[np.isfinite(hist_samples)]
+    else:
+        hist_samples = np.array([])
+    if hist_samples.size == 0:
+        hist_bins = 20
+    else:
+        low, high = hist_samples.min(), hist_samples.max()
+        if np.isclose(low, high):
+            low -= 0.5
+            high += 0.5
+        hist_bins = np.linspace(low, high, 30)
+    for j in hist_indices:
+        method = methods[j]
+        values = delta[:, j]
+        values = values[np.isfinite(values)]
+        if values.size == 0:
+            continue
+        ax_hist.hist(
+            values,
+            bins=hist_bins,
+            histtype="step",
+            color=default_colors.get(method),
+            linewidth=1.8,
+            label=LABELS.get(method, method),
+        )
+    ax_hist.set_ylabel("")
+    ax_hist.tick_params(labelbottom=False, labelleft=False, length=0)
+    for spine in ax_hist.spines.values():
+        spine.set_visible(False)
+
     fig.tight_layout()
     return fig, ax
+
+
+def ensure_baseline(methods: tuple[str, ...], baseline: str) -> tuple[str, ...]:
+    if baseline in methods:
+        return methods
+    return (baseline,) + tuple(m for m in methods if m != baseline)
+
+
+def save_plot_variations(
+    results_by_seed,
+    baseline: str,
+    sample: int | None,
+    propagate_baseline_error: bool,
+    outdir: Path,
+) -> None:
+    variations = [
+        ("lnz_all_methods.png", tuple(METHODS)),
+        ("lnz_morph_mcmc_only.png", ("mcmc_morphz",)),
+        (
+            "lnz_morph_vs_dynesty.png",
+            ("dynesty", "mcmc_morphz", "dynesty_morphz"),
+        ),
+    ]
+
+    outdir.mkdir(parents=True, exist_ok=True)
+    for filename, subset in variations:
+        method_order = ensure_baseline(tuple(subset), baseline)
+        try:
+            fig, _ = plot_delta_lnz_spaghetti(
+                results_by_seed,
+                baseline=baseline,
+                methods=method_order,
+                sample=sample,
+                propagate_baseline_error=propagate_baseline_error,
+            )
+        except ValueError as exc:
+            print(f"Skipping {filename}: {exc}")
+            continue
+        fig.savefig(outdir / filename)
+        plt.close(fig)
 
 
 def parse_args() -> argparse.Namespace:
@@ -304,8 +391,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--plot",
         type=Path,
-        default=Path(__file__).resolve().parent / PLOT_FILENAME,
-        help="Output path for the spaghetti plot PNG.",
+        default=None,
+        help="Optional single plot output path (all methods).",
+    )
+    parser.add_argument(
+        "--outdir",
+        type=Path,
+        default=DEFAULT_PLOT_DIR,
+        help="Directory to store plot variations when --plot is omitted.",
     )
     parser.add_argument(
         "--force-refresh",
@@ -342,14 +435,24 @@ def main() -> None:
         force_refresh=args.force_refresh,
     )
 
-    fig, _ = plot_delta_lnz_spaghetti(
-        results_by_seed,
-        baseline=args.baseline,
-        sample=args.sample,
-        propagate_baseline_error=args.propagate_baseline_error,
-    )
-    fig.savefig(args.plot)
-    plt.close(fig)
+    if args.plot:
+        fig, _ = plot_delta_lnz_spaghetti(
+            results_by_seed,
+            baseline=args.baseline,
+            sample=args.sample,
+            propagate_baseline_error=args.propagate_baseline_error,
+        )
+        args.plot.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(args.plot)
+        plt.close(fig)
+    else:
+        save_plot_variations(
+            results_by_seed,
+            baseline=args.baseline,
+            sample=args.sample,
+            propagate_baseline_error=args.propagate_baseline_error,
+            outdir=args.outdir,
+        )
 
 
 if __name__ == "__main__":
