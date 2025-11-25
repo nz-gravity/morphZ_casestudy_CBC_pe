@@ -12,7 +12,7 @@ out*
 .distance_marginalization_lookup.npz
 out_quick/
 .idea
-
+*.tex
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
