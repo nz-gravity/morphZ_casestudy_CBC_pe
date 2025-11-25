@@ -1,15 +1,18 @@
 #!/usr/bin/env python
-"""Generate LaTeX tables summarising GW150914 and injection-ensemble evidences."""
+"""Regenerate LaTeX tables for GW150914 and the injection ensemble evidences."""
 
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
 
 import pandas as pd
 
 
-GW150914_METHOD_ORDER = [
+GW_CSV = Path("GW150914_bayeswave/evidences.csv")
+PP_CSV = Path("fast_pp/evidences.csv")
+OUTDIR = Path("tables")
+
+GW_METHODS = [
     ("dynesty", "Dynesty"),
     ("mcmc", "MCMC"),
     ("dynesty_morphz", "MorphZ(Dynesty)"),
@@ -21,42 +24,37 @@ def format_unc(value: float, err: float) -> str:
     return f"{value:.3f} \\pm {err:.3f}"
 
 
-def generate_gw150914_table(csv_path: Path) -> str:
-    df = pd.read_csv(csv_path).set_index("method")
+def generate_gw_table() -> str:
+    df = pd.read_csv(GW_CSV).set_index("method")
     if "dynesty" not in df.index:
-        raise ValueError("GW150914 CSV must contain a 'dynesty' row")
+        raise ValueError("GW150914 evidences.csv must contain a 'dynesty' entry.")
 
-    header_cols = ["\\textbf{Dataset}"] + [
-        f"$\\ln Z_{{\\mathrm{{{label}}}}} \\pm \\sigma$" for _, label in GW150914_METHOD_ORDER
-    ]
-    header_line = " & ".join(header_cols) + r" \\\\" 
+    header = (
+        ["\\textbf{Dataset}"]
+        + [f"$\\ln Z_{{\\mathrm{{{label}}}}} \\pm \\sigma$" for _, label in GW_METHODS]
+    )
+    body_row = ["GW150914"]
+    for method, _ in GW_METHODS:
+        body_row.append(format_unc(df.loc[method, "lnz"], df.loc[method, "lnz_err"]))
 
-    gw_row = ["GW150914"]
-    for method, _ in GW150914_METHOD_ORDER:
-        row = df.loc[method]
-        gw_row.append(format_unc(row["lnz"], row["lnz_err"]))
-    gw_line = " & ".join(gw_row) + r" \\\\" 
-
-    delta_row = ["\\Delta \\text{vs Dynesty}"]
     base = df.loc["dynesty", "lnz"]
-    for method, _ in GW150914_METHOD_ORDER:
+    delta_row = ["\\Delta \\text{vs Dynesty}"]
+    for method, _ in GW_METHODS:
         delta_row.append(f"{df.loc[method, 'lnz'] - base:.3f}")
-    delta_line = " & ".join(delta_row) + r" \\\\" 
 
     lines = [
-        "\\begin{tabular}{l" + "c" * len(GW150914_METHOD_ORDER) + "}",
+        "\\begin{tabular}{l" + "c" * len(GW_METHODS) + "}",
         "\\toprule",
-        header_line,
-        gw_line,
-        delta_line,
+        " & ".join(header) + r" \\",
+        " & ".join(body_row) + r" \\",
+        " & ".join(delta_row) + r" \\",
         "\\bottomrule",
         "\\end{tabular}",
     ]
-
     return "\n".join(lines)
 
 
-def summarise_deltas(values: pd.Series) -> tuple[str, str, float, float]:
+def summarise_deltas(values: pd.Series) -> tuple[str, str, str, str]:
     median = values.median()
     q25 = values.quantile(0.25)
     q75 = values.quantile(0.75)
@@ -67,21 +65,22 @@ def summarise_deltas(values: pd.Series) -> tuple[str, str, float, float]:
     return (
         f"{median:.3f}\\,[{q25:.3f},\\,{q75:.3f}]",
         f"{mean:.3f}\\,\\pm\\,{std:.3f}",
-        frac_half,
-        frac_one,
+        f"{frac_half:.1f}\\%",
+        f"{frac_one:.1f}\\%",
     )
 
 
-def generate_pp_table(csv_path: Path) -> str:
-    df = pd.read_csv(csv_path)
-    required = [
+def generate_pp_table() -> str:
+    df = pd.read_csv(PP_CSV)
+    required = {
         "lnz_dynesty",
         "lnz_mcmc",
         "lnz_morph_dynesty",
         "lnz_morph_mcmc",
-    ]
-    if not set(required).issubset(df.columns):
-        raise ValueError("PP evidences CSV is missing required columns")
+    }
+    if not required.issubset(df.columns):
+        missing = ", ".join(sorted(required - set(df.columns)))
+        raise ValueError(f"PP evidences missing columns: {missing}")
 
     deltas = {
         "MCMC": df["lnz_mcmc"] - df["lnz_dynesty"],
@@ -99,63 +98,22 @@ def generate_pp_table(csv_path: Path) -> str:
     rows = []
     for label in ["MCMC", "MorphZ(Dynesty)", "MorphZ(MCMC)"]:
         med_iqr, mean_std, frac_half, frac_one = summarise_deltas(deltas[label].dropna())
-        rows.append(
-            f"{label} & {med_iqr} & {mean_std} & {frac_half:.1f}\\% & {frac_one:.1f}\\% \\\\"  # noqa: E501
-        )
+        rows.append(f"{label} & {med_iqr} & {mean_std} & {frac_half} & {frac_one} \\\\")
 
     footer = "\\bottomrule\n\\end{tabular}"
     return "\n".join([header, *rows, footer])
 
 
-def save_table(content: str, path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+def save_table(content: str, filename: str) -> None:
+    OUTDIR.mkdir(parents=True, exist_ok=True)
+    path = OUTDIR / filename
     path.write_text(content)
     print(f"Wrote {path}")
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate LaTeX tables from evidence CSV files.")
-    parser.add_argument(
-        "--gw150914-csv",
-        type=Path,
-        default=Path("GW150914_bayeswave/evidences.csv"),
-        help="Input CSV for GW150914 evidences.",
-    )
-    parser.add_argument(
-        "--pp-csv",
-        type=Path,
-        default=Path("fast_pp/evidences.csv"),
-        help="Input CSV for the injection ensemble evidences.",
-    )
-    parser.add_argument(
-        "--outdir",
-        type=Path,
-        default=Path("tables"),
-        help="Directory for generated LaTeX tables.",
-    )
-    parser.add_argument(
-        "--skip-gw",
-        action="store_true",
-        help="Skip generating the GW150914 table.",
-    )
-    parser.add_argument(
-        "--skip-pp",
-        action="store_true",
-        help="Skip generating the injection ensemble table.",
-    )
-    return parser.parse_args()
-
-
 def main() -> None:
-    args = parse_args()
-
-    if not args.skip_gw:
-        table = generate_gw150914_table(args.gw150914_csv)
-        save_table(table, args.outdir / "gw150914_table.tex")
-
-    if not args.skip_pp:
-        table = generate_pp_table(args.pp_csv)
-        save_table(table, args.outdir / "pp_ensemble_table.tex")
+    save_table(generate_gw_table(), "gw150914_table.tex")
+    save_table(generate_pp_table(), "pp_ensemble_table.tex")
 
 
 if __name__ == "__main__":
