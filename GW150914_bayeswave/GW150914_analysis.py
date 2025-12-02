@@ -1,20 +1,35 @@
 import argparse
-from GW150914_setup import likelihood, priors, outdir, checkpoint_delta_t, NPOOL, logger, bilby
+from GW150914_setup import (
+    likelihood,
+    priors,
+    outdir,
+    checkpoint_delta_t,
+    NPOOL,
+    logger,
+    bilby,
+)
+
+DEFAULT_DYNESTY = dict(nlive=2000, nact=20, sample="rwalk")
 
 
-def run_dynesty():
-    label = 'dynesty'
-    result_path = f"{outdir}/{label}_result.json"
-    logger.info("Running Dynesty...")
+def run_dynesty(nlive=DEFAULT_DYNESTY["nlive"], label=None):
+    label = label or ("dynesty" if nlive == DEFAULT_DYNESTY["nlive"] else f"dynesty_nlive{nlive}")
+    logger.info(
+        "Running Dynesty with nlive=%s, nact=%s, sample=%s (label=%s)",
+        nlive,
+        DEFAULT_DYNESTY["nact"],
+        DEFAULT_DYNESTY["sample"],
+        label,
+    )
     result = bilby.run_sampler(
         likelihood,
         priors,
         sampler="dynesty",
         outdir=outdir,
         label=label,
-        nlive=2000,
-        nact=20,
-        sample="rwalk",
+        nlive=nlive,
+        nact=DEFAULT_DYNESTY["nact"],
+        sample=DEFAULT_DYNESTY["sample"],
         check_point_delta_t=checkpoint_delta_t,
         check_point_plot=True,
         npool=NPOOL,
@@ -23,6 +38,7 @@ def run_dynesty():
     )
     result.plot_corner()
     logger.info(f"Dynesty LnZ = {result.log_evidence:.3f} ± {result.log_evidence_err:.3f}")
+
 
 def run_mcmc():
     from GW150914_setup import likelihood, priors, outdir, checkpoint_delta_t, NPOOL, logger, bilby
@@ -56,10 +72,17 @@ def run_mcmc():
 def main():
     parser = argparse.ArgumentParser(description="Run GW150914 analysis with specified sampler.")
     parser.add_argument('--sampler', type=str, choices=['dynesty', 'mcmc'], required=True,
-                        help='Sampler to use for the analysis: dynesty or mcmc')    
+                        help='Sampler to use for the analysis: dynesty or mcmc')
+    parser.add_argument('--nlive', type=int, default=None,
+                        help=f'Dynesty live points (default {DEFAULT_DYNESTY["nlive"]})')
+    parser.add_argument('--label', type=str, default=None,
+                        help='Optional label override for dynesty runs')
     args = parser.parse_args()
     if args.sampler == 'dynesty':
-        run_dynesty()
+        run_dynesty(
+            nlive=args.nlive or DEFAULT_DYNESTY["nlive"],
+            label=args.label,
+        )
     elif args.sampler == 'mcmc':
         run_mcmc()
     else:
