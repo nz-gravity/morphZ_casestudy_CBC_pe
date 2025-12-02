@@ -25,6 +25,9 @@ else
     NLIVE=${NLIVE_DEFAULT}
 fi
 
+JOBNAME="gw150914_NS_wave_nlive${NLIVE}"
+scontrol update JobId=${SLURM_JOB_ID} JobName=${JOBNAME}
+
 echo "Starting GW150914 Dynesty prod job ${SLURM_JOB_ID}"
 echo "Using dynesty nlive=${NLIVE}"
 date
